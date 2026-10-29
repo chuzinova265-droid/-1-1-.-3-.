@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Контрольная работа: Окружающий мир, 3 класс</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #87CEEB; font-family: Arial, sans-serif; }
+        .game-scene { display: flex; width: 100%; height: 100%; align-items: stretch; }
+        .canvas-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; background: #3a7a2a; }
+        .canvas-wrapper canvas { width: 100%; height: 100%; object-fit: cover; background: transparent; }
+        .right-panel { 
+            width: calc(30% + 260px); height: 100vh; margin: 0; background: #fdf5e6; flex-shrink: 0; 
+            box-shadow: -5px 0 30px rgba(0,0,0,0.15); display: flex; flex-direction: column;
+            padding: 20px; overflow: hidden; position: relative;
+            border: 3px solid #2e8b57;
+            border-radius: 12px;
+        }
+        header { text-align: center; margin-bottom: 20px; z-index: 10; position: relative; }
+        header h1 { font-size: 2.2rem; color: #006400; font-weight: bold; margin-bottom: 10px; }
+        #progress-counter { 
+            font-size: 1.6rem; color: #800020; font-weight: bold; background: #e8f5e9; padding: 10px; border-radius: 8px; 
+        }
+        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; z-index: 10; position: relative; padding-right: 5px; }
+        .page { display: none; flex-direction: column; gap: 15px; animation: fadeIn 0.3s ease; }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        h2 { font-size: 2.2rem; color: #006400; font-weight: bold; text-align: center; }
+        h3 { font-size: 1.8rem; color: #006400; font-weight: bold; text-align: center; }
+        .instruction-text { color: #00008B; font-weight: bold; font-size: 1.4rem; line-height: 1.5; margin: 10px 0; }
+        label { display: block; margin: 10px 0; cursor: pointer; font-size: 1.4rem; }
+        p { font-size: 1.3rem; }
+        
+        .answer-line {
+            width: 100%; background: transparent; border: none; border-bottom: 2px solid #000;
+            font-size: 1.3rem; font-family: Arial, sans-serif; outline: none; resize: none; color: #000; padding: 4px 0;
+        }
+        .answer-line:focus { border-bottom-color: #00008B; }
+        .inline-line {
+            background: transparent; border: none; border-bottom: 2px solid #000;
+            font-size: 1.3rem; font-family: Arial, sans-serif; outline: none; color: #000; padding: 2px 4px; display: inline-block;
+        }
+        .inline-line:focus { border-bottom-color: #00008B; }
+        .buttons { display: flex; gap: 15px; margin-top: 20px; justify-content: center; flex-wrap: wrap; z-index: 10; position: relative; }
+        button { 
+            padding: 14px 28px; border: none; border-radius: 8px; font-size: 1.3rem; font-weight: bold; 
+            cursor: pointer; transition: transform 0.1s, background 0.2s; font-family: Arial, sans-serif;
+        }
+        button:active { transform: scale(0.98); }
+        .check-btn { background: #4CAF50; color: white; }
+        .check-btn:hover { background: #45a049; }
+        .next-btn { background: #2196F3; color: white; }
+        .next-btn:hover { background: #1e88e5; }
+        .next-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .finish-btn { background: #ff9800; color: white; font-size: 1.4rem; padding: 15px 30px; }
+        .finish-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .feedback { 
+            margin-top: 15px; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.3rem; display: none; z-index: 10; position: relative;
+        }
+        .feedback.correct { background: #e8f5e9; color: #2e7d32; border: 2px solid #2e7d32; }
+        .feedback.incorrect { background: #ffebee; color: #c62828; border: 2px solid #c62828; }
+        .checked input, .checked textarea, .checked select { pointer-events: none; opacity: 0.6; background: #f5f5f5; }
+        .checked .check-btn { display: none; }
+        .checked .next-btn { display: inline-block; }
+        .drag-container { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin: 15px 0; }
+        .drop-zone { 
+            width: 45%; min-height: 180px; border: 3px dashed #8fbc8f; border-radius: 10px; 
+            padding: 10px; background: #f1f8e9; text-align: center; 
+        }
+        .drop-zone h4 { color: #00008B; font-weight: bold; margin-bottom: 10px; pointer-events: none; font-size: 1.4rem; }
+        .drop-zone span { font-size: 2em; user-select: none; transition: transform 0.2s; display: inline-block; margin: 5px; }
+        .draggables { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; font-size: 4em; cursor: grab; }
+        .draggables span { user-select: none; transition: transform 0.2s; }
+        .draggables span:active { cursor: grabbing; transform: scale(1.2); }
+        
+        .map-wrap { 
+            position: relative; width: 100%; height: 600px; border-radius: 12px; overflow: visible; background: #a8d4f0; margin: 10px 0; 
+        }
+        .map-wrap canvas { display: block; width: 100%; height: 100%; }
+        .field { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; z-index: 5; }
+        .field input, .field textarea { 
+            background: transparent; border: none; border-bottom: 2px solid #1a5e7a; 
+            font-size: 1.15rem; font-weight: 700; color: #c62828; 
+            padding: 4px 8px; width: 90px; min-width: 90px; max-width: 220px;
+            outline: none; text-align: center; font-family: 'Segoe UI', Roboto, sans-serif;
+            transition: width 0.2s ease;
+        }
+        .field textarea {
+            resize: none; overflow: hidden; height: 36px; line-height: 18px; white-space: pre-wrap; word-wrap: break-word;
+        }
+        .field input:focus, .field textarea:focus { border-bottom-color: #e67e22; background: rgba(255, 249, 230, 0.5); }
+        .field .label { font-size: 0.9rem; font-weight: 700; color: #000; margin-top: 4px; }
+        
+        .result-box { text-align: center; padding: 20px; background: #e8f5e9; border-radius: 12px; border: 3px solid #006400; z-index: 10; position: relative; }
+        .result-score { font-size: 2.2rem; color: #006400; font-weight: bold; font-family: Arial, sans-serif; margin: 15px 0; }
+        .result-message { font-size: 1.5rem; color: #006400; font-weight: bold; font-family: Arial, sans-serif; line-height: 1.4; margin-top: 15px; }
+        .flower-container {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            overflow: hidden; pointer-events: none; z-index: 1;
+        }
+        .flower { position: absolute; bottom: -50px; font-size: 2.5rem; animation: rise linear infinite; }
+        @keyframes rise { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; } }
+        .error-msg { color: #ff0000; font-weight: bold; text-align: center; display: none; margin-top: 10px; font-size: 1.3rem; }
+        
+        .mushroom-container { 
+            position: relative; width: 100%; max-width: 700px; margin: 20px auto; display: flex; align-items: center; justify-content: center;
+        }
+        .mushroom-svg { width: 300px; height: 400px; display: block; flex-shrink: 0; }
+        .mushroom-input {
+            font-size: 1.3rem; padding: 4px; background: transparent;
+            border: none; border-bottom: 2px solid #000; outline: none; font-family: Arial, sans-serif;
+            min-width: 90px; max-width: 200px; transition: width 0.2s ease;
+        }
+        .mushroom-input:focus { border-bottom-color: #00008B; }
+
+        .panel-footer {
+            text-align: center;
+            font-size: 10em; 
+            margin-top: auto;
+            padding: 10px 0;
+            color: #333;
+            line-height: 1;
+        }
+
+        @media (max-width: 1024px) { .right-panel { width: 40%; } header h1 { font-size: 1.8rem; } }
+        @media (max-width: 860px) { .right-panel { width: 320px; padding: 15px; } .draggables { font-size: 3em; } }
+        @media (max-width: 768px) {
+            .game-scene { flex-direction: column; overflow-y: auto; }
+            .canvas-wrapper { height: 40vh; min-height: 300px; }
+            .right-panel { width: 100%; height: auto; min-height: 60vh; overflow-y: visible; }
+            .drop-zone { width: 100%; margin-bottom: 10px; }
+        }
+        @media (max-width: 600px) { 
+            .right-panel { padding: 10px; } header h1 { font-size: 1.5rem; }
+            button { width: 100%; margin-bottom: 5px; } .buttons { flex-direction: column; }
+            .field input, .field textarea { width: 80px; font-size: 0.95rem; }
+        }
+        @media (max-width: 480px) { .draggables { font-size: 2.5em; } .mushroom-input { width: 100px; font-size: 1.1rem; } }
+        @media (max-width: 360px) { header h1 { font-size: 1.3rem; } .result-score { font-size: 1.6rem; } .result-message { font-size: 1.2rem; } }
+    </style>
+</head>
+<body>
+    <div class="game-scene">
+        <div class="canvas-wrapper"><canvas id="sceneCanvas" width="1280" height="720"></canvas></div>
+        <div class="right-panel">
+            <header>
+                <h1>👩‍💻 Мир вокруг — наш учебник! 🧑‍💻</h1>
+                <div id="progress-counter" aria-live="polite">Из 22 заданий верно выполнено 0</div>
+            </header>
+            <main id="test-container" role="main">
+                <section class="page active" data-page="1" aria-label="Регистрация">
+                    <h2 style="font-size: 2.2rem;">Регистрация</h2>
+                    <label for="student-name" style="font-size: 1.5rem;">Фамилия, имя:</label>
+                    <input type="text" id="student-name" autocomplete="off" placeholder="Например: Иванов Иван" style="font-size: 1.4rem;">
+                    <p id="name-error" class="error-msg">Напиши полностью фамилию имя!</p>
+                    <div class="buttons">
+                        <button class="next-btn" onclick="startTest()" style="font-size: 1.4rem;">Начать решать</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="2" aria-label="Задание 1">
+                    <h3>Задание 1</h3>
+                    <img src="https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg" alt="Планета Земля" style="max-width: 350px; border-radius: 50%; display: block; margin: 0 auto 15px auto; box-shadow: 0 0 20px rgba(0,0,0,0.4);">
+                    <p style="font-size: 1.4rem; font-weight: bold; color: #00008B; margin-bottom: 10px; text-align: center;">Выбери 2 верных ответа</p>
+                    <p class="instruction-text" style="text-align: center;">Крупные участки суши, окруженные водой, принято называть…</p>
+                    <div style="display: flex; gap: 25px; flex-wrap: wrap; justify-content: center; margin-top: 15px;">
+                        <label style="margin: 0;"><input type="checkbox" name="t1" value="1" autocomplete="off"> материками</label>
+                        <label style="margin: 0;"><input type="checkbox" name="t1" value="0" autocomplete="off"> островами</label>
+                        <label style="margin: 0;"><input type="checkbox" name="t1" value="1" autocomplete="off"> континентами</label>
+                        <label style="margin: 0;"><input type="checkbox" name="t1" value="0" autocomplete="off"> полями</label>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask1()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="3" aria-label="Задание 2">
+                    <h3>Задание 2</h3>
+                    <p class="instruction-text" style="text-align:center;">Напиши названия материков и океанов</p>
+                    <div class="map-wrap" id="mapWrap">
+                        <canvas id="mapCanvas"></canvas>
+                        <div class="field" style="left: 50%; top: 20px;">
+                            <textarea data-answer="Северный Ледовитый" autocomplete="off" rows="2" style="white-space: pre-wrap; word-wrap: break-word; resize: none; overflow: hidden; width: 140px;" oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px';"></textarea>
+                            <span class="label">океан</span>
+                        </div>
+                        <div class="field" style="left: 15%; top: 270px;">
+                            <input type="text" data-answer="Тихий" autocomplete="off" oninput="this.style.width = Math.max(90, this.value.length * 12) + 'px'">
+                            <span class="label">океан</span>
+                        </div>
+                        <div class="field" style="left: 38%; top: 185px;">
+                            <input type="text" data-answer="Атлантический" autocomplete="off" oninput="this.style.width = Math.max(90, this.value.length * 12) + 'px'">
+                            <span class="label">океан</span>
+                        </div>
+                        <div class="field" style="left: 72%; top: 370px;">
+                            <input type="text" data-answer="Индийский" autocomplete="off" oninput="this.style.width = Math.max(90, this.value.length * 12) + 'px'">
+                            <span class="label">океан</span>
+                        </div>
+                        <div class="field" style="left: 50%; top: 480px;">
+                            <input type="text" data-answer="Южный" autocomplete="off" oninput="this.style.width = Math.max(90, this.value.length * 12) + 'px'">
+                            <span class="label">океан</span>
+                        </div>
+                        <div class="field" style="left: 22%; top: 130px;">
+                            <textarea data-answer="Северная Америка" autocomplete="off" rows="2" style="white-space: pre-wrap; word-wrap: break-word; resize: none; overflow: hidden; width: 120px;" oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px';"></textarea>
+                            <span class="label">материк</span>
+                        </div>
+                        <div class="field" style="left: 75%; top: 108px;">
+                            <input type="text" data-answer="Евразия" autocomplete="off" oninput="this.style.width = Math.max(90, this.value.length * 12) + 'px'">
+                            <span class="label">материк</span>
+                        </div>
+                        <div class="field" style="left: 55%; top: 230px;">
+                            <input type="text" data-answer="Африка" autocomplete="off" oninput="this.style.width = Math.max(90, this.value.length * 12) + 'px'">
+                            <span class="label">материк</span>
+                        </div>
+                        <div class="field" style="left: 33%; top: 310px;">
+                            <textarea data-answer="Южная Америка" autocomplete="off" rows="2" style="white-space: pre-wrap; word-wrap: break-word; resize: none; overflow: hidden; width: 120px;" oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px';"></textarea>
+                            <span class="label">материк</span>
+                        </div>
+                        <div class="field" style="left: 87%; top: 390px;">
+                            <input type="text" data-answer="Австралия" autocomplete="off" oninput="this.style.width = Math.max(90, this.value.length * 12) + 'px'">
+                            <span class="label">материк</span>
+                        </div>
+                        <div class="field" style="left: 50%; top: 560px;">
+                            <input type="text" data-answer="Антарктида" autocomplete="off" oninput="this.style.width = Math.max(90, this.value.length * 12) + 'px'">
+                            <span class="label">материк</span>
+                        </div>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask2()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="4" aria-label="Задание 3">
+                    <h3>Задание 3</h3>
+                    <p class="instruction-text">Переведи римские цифры на арабские:</p>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; font-weight:bold; font-size: 1.4rem;">
+                        <div>X = <input type="text" class="inline-line" data-ans="10" autocomplete="off" style="width:80px;"></div>
+                        <div>V = <input type="text" class="inline-line" data-ans="5" autocomplete="off" style="width:80px;"></div>
+                        <div>VI = <input type="text" class="inline-line" data-ans="6" autocomplete="off" style="width:80px;"></div>
+                        <div>I = <input type="text" class="inline-line" data-ans="1" autocomplete="off" style="width:80px;"></div>
+                        <div>IX = <input type="text" class="inline-line" data-ans="9" autocomplete="off" style="width:80px;"></div>
+                        <div>IV = <input type="text" class="inline-line" data-ans="4" autocomplete="off" style="width:80px;"></div>
+                        <div>XI = <input type="text" class="inline-line" data-ans="11" autocomplete="off" style="width:80px;"></div>
+                        <div>III = <input type="text" class="inline-line" data-ans="3" autocomplete="off" style="width:80px;"></div>
+                        <div>VIII = <input type="text" class="inline-line" data-ans="8" autocomplete="off" style="width:80px;"></div>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask3()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="5" aria-label="Задание 4">
+                    <h3>Задание 4</h3>
+                    <p class="instruction-text">Раздели тела на 2 группы: природные и искусственные. Для этого перетаскивай картинки в рамки с выбранным заголовком.</p>
+                    <div class="drag-container">
+                        <div class="drop-zone" id="natural" data-type="natural" ondrop="drop(event)" ondragover="allowDrop(event)"><h4>Природные тела</h4></div>
+                        <div class="drop-zone" id="artificial" data-type="artificial" ondrop="drop(event)" ondragover="allowDrop(event)"><h4>Искусственные тела</h4></div>
+                    </div>
+                    <div class="draggables" id="draggables-container">
+                        <span draggable="true" ondragstart="drag(event)" data-type="artificial" id="d3">🚀</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="natural" id="d1">🌞</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="artificial" id="d8">📦</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="natural" id="d4">🌏</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="artificial" id="d12">🏠</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="natural" id="d5">🌛</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="artificial" id="d2">🪑</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="natural" id="d9">🌈</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="artificial" id="d6">🔭</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="natural" id="d13">🐜</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="natural" id="d7">🪐</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="artificial" id="d10">🛻</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="natural" id="d11">🌴</span>
+                        <span draggable="true" ondragstart="drag(event)" data-type="artificial" id="d14">🥖</span>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask4()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="6" aria-label="Задание 5">
+                    <h3>Задание 5</h3>
+                    <p class="instruction-text">Что такое Солнце?</p>
+                    <label><input type="radio" name="t5" value="0" autocomplete="off"> планета</label>
+                    <label><input type="radio" name="t5" value="1" autocomplete="off"> звезда</label>
+                    <label><input type="radio" name="t5" value="0" autocomplete="off"> астероид</label>
+                    <label><input type="radio" name="t5" value="0" autocomplete="off"> комета</label>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask(6, 'radio', 't5', '1')">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="7" aria-label="Задание 6">
+                    <h3>Задание 6</h3>
+                    <p class="instruction-text">Какая планета «красная»?</p>
+                    <label><input type="radio" name="t6" value="0" autocomplete="off"> Юпитер</label>
+                    <label><input type="radio" name="t6" value="0" autocomplete="off"> Сатурн</label>
+                    <label><input type="radio" name="t6" value="1" autocomplete="off"> Марс</label>
+                    <label><input type="radio" name="t6" value="0" autocomplete="off"> Венера</label>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask(7, 'radio', 't6', '1')">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="8" aria-label="Задание 7">
+                    <h3>Задание 7</h3>
+                    <p class="instruction-text">Кто первый полетел в космос?</p>
+                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1;">
+                            <label><input type="radio" name="t7" value="0" autocomplete="off"> Нил Армстронг</label>
+                            <label><input type="radio" name="t7" value="0" autocomplete="off"> А. Леонов</label>
+                            <label><input type="radio" name="t7" value="1" autocomplete="off"> Ю. Гагарин</label>
+                            <label><input type="radio" name="t7" value="0" autocomplete="off"> И. Маск</label>
+                        </div>
+                        <div style="font-size: 12em; line-height: 1; text-align: center; margin-left: -40px;">🚀</div>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask(8, 'radio', 't7', '1')">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="9" aria-label="Задание 8">
+                    <h3>Задание 8</h3>
+                    <p class="instruction-text">Какая планета ближе к Солнцу?</p>
+                    <label><input type="radio" name="t8" value="1" autocomplete="off"> Меркурий</label>
+                    <label><input type="radio" name="t8" value="0" autocomplete="off"> Венера</label>
+                    <label><input type="radio" name="t8" value="0" autocomplete="off"> Земля</label>
+                    <label><input type="radio" name="t8" value="0" autocomplete="off"> Марс</label>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask(9, 'radio', 't8', '1')">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="10" aria-label="Задание 9">
+                    <h3>Задание 9</h3>
+                    <p class="instruction-text">Как называется спутник Земли?</p>
+                    <label><input type="radio" name="t9" value="0" autocomplete="off"> Фобос</label>
+                    <label><input type="radio" name="t9" value="1" autocomplete="off"> Луна</label>
+                    <label><input type="radio" name="t9" value="0" autocomplete="off"> Нептун</label>
+                    <label><input type="radio" name="t9" value="0" autocomplete="off"> Уран</label>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask(10, 'radio', 't9', '1')">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="11" aria-label="Задание 10">
+                    <h3>Задание 10</h3>
+                    <p class="instruction-text">Допиши верно:</p>
+                    <p style="font-size: 1.4rem;">1. Один оборот вокруг оси Земля совершает за <input type="text" class="inline-line" id="q10-1" autocomplete="off" style="width:120px;"></p>
+                    <p style="font-size: 1.4rem;">2. Полный оборот вокруг Солнца наша планета делает за <input type="text" class="inline-line" id="q10-2" autocomplete="off" style="width:120px;"></p>
+                    <p style="font-size: 1.4rem;">3. Отрезок времени в 24 часа называется <input type="text" class="inline-line" data-kw="сутки,сутками" autocomplete="off" style="width:120px;"></p>
+                    <p style="font-size: 1.4rem;">4. Отрезок времени в 100 лет называется <input type="text" class="inline-line" data-kw="век,столетие" autocomplete="off" style="width:120px;"></p>
+                    <p style="font-size: 1.4rem;">5. Отрезок времени в 7 дней называется <input type="text" class="inline-line" data-kw="неделя" autocomplete="off" style="width:120px;"></p>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask10()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="12" aria-label="Задание 11">
+                    <h3>Задание 11</h3>
+                    <p class="instruction-text">Выбери правильные высказывания о значении солнечного света:</p>
+                    <label><input type="checkbox" name="t11" value="0" autocomplete="off"> Жизнь на Земле возможна без солнечного света.</label>
+                    <label><input type="checkbox" name="t11" value="1" autocomplete="off"> Солнечный свет и тепло – необходимые условия для жизни на Земле.</label>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask11()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="13" aria-label="Задание 12">
+                    <h3>Задание 12</h3>
+                    <p class="instruction-text">Выбери явления, которые связаны с уменьшением тепла в окружающей среде:</p>
+                    <label><input type="checkbox" name="t12" value="0" autocomplete="off"> Осадки в виде дождя</label>
+                    <label><input type="checkbox" name="t12" value="1" autocomplete="off"> Замерзание водоёмов</label>
+                    <label><input type="checkbox" name="t12" value="0" autocomplete="off"> Спячка животных</label>
+                    <label><input type="checkbox" name="t12" value="1" autocomplete="off"> Понижение температуры до 0⁰ и ниже</label>
+                    <label><input type="checkbox" name="t12" value="0" autocomplete="off"> Цветение плодовых деревьев</label>
+                    <label><input type="checkbox" name="t12" value="1" autocomplete="off"> Осадки в виде снега</label>
+                    <label><input type="checkbox" name="t12" value="0" autocomplete="off"> Листопад</label>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask12()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="14" aria-label="Задание 13">
+                    <h3>Задание 13</h3>
+                    <p class="instruction-text">Отметь свойства воды:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        <label><input type="checkbox" name="t13" value="0" autocomplete="off"> Мутная</label>
+                        <label><input type="checkbox" name="t13" value="1" autocomplete="off"> Текучая</label>
+                        <label><input type="checkbox" name="t13" value="1" autocomplete="off"> Бесцветная</label>
+                        <label><input type="checkbox" name="t13" value="0" autocomplete="off"> Стоячая</label>
+                        <label><input type="checkbox" name="t13" value="1" autocomplete="off"> Без запаха</label>
+                        <label><input type="checkbox" name="t13" value="0" autocomplete="off"> Разноцветная</label>
+                        <label><input type="checkbox" name="t13" value="1" autocomplete="off"> Принимает форму сосуда</label>
+                        <label><input type="checkbox" name="t13" value="0" autocomplete="off"> Имеет запах и вкус</label>
+                        <label><input type="checkbox" name="t13" value="1" autocomplete="off"> Растворимость</label>
+                        <label><input type="checkbox" name="t13" value="1" autocomplete="off"> Прозрачная</label>
+                        <label><input type="checkbox" name="t13" value="0" autocomplete="off"> Принимает любую форму</label>
+                        <label><input type="checkbox" name="t13" value="1" autocomplete="off"> Без вкуса</label>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask13()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="15" aria-label="Задание 14">
+                    <h3>Задание 14</h3>
+                    <p class="instruction-text">Отметь состав воздуха:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        <label><input type="checkbox" name="t14" value="0" autocomplete="off"> Газ</label>
+                        <label><input type="checkbox" name="t14" value="1" autocomplete="off"> Азот</label>
+                        <label><input type="checkbox" name="t14" value="0" autocomplete="off"> Озон</label>
+                        <label><input type="checkbox" name="t14" value="0" autocomplete="off"> Углекислый</label>
+                        <label><input type="checkbox" name="t14" value="1" autocomplete="off"> Кислород</label>
+                        <label><input type="checkbox" name="t14" value="1" autocomplete="off"> Углекислый газ</label>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask14()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="16" aria-label="Задание 15">
+                    <h3>Задание 15</h3>
+                    <p class="instruction-text">Отметь свойства воздуха:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        <label><input type="checkbox" name="t15" value="0" autocomplete="off"> Туманность</label>
+                        <label><input type="checkbox" name="t15" value="0" autocomplete="off"> Имеет запах и вкус</label>
+                        <label><input type="checkbox" name="t15" value="1" autocomplete="off"> Бесцветный</label>
+                        <label><input type="checkbox" name="t15" value="1" autocomplete="off"> Прозрачный</label>
+                        <label><input type="checkbox" name="t15" value="0" autocomplete="off"> Расширяется при охлаждении</label>
+                        <label><input type="checkbox" name="t15" value="1" autocomplete="off"> Без запаха</label>
+                        <label><input type="checkbox" name="t15" value="1" autocomplete="off"> Сжимается при охлаждении</label>
+                        <label><input type="checkbox" name="t15" value="1" autocomplete="off"> Расширяется при нагревании</label>
+                        <label><input type="checkbox" name="t15" value="0" autocomplete="off"> Сжимается при нагревании</label>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask15()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="17" aria-label="Задание 16">
+                    <h3>Задание 16</h3>
+                    <p class="instruction-text">Отметь верные высказывания, которые помогают в борьбе с загрязнением воздуха:</p>
+                    <label><input type="checkbox" name="t16" value="1" autocomplete="off"> Сажать растения у дома и на улице.</label>
+                    <label><input type="checkbox" name="t16" value="0" autocomplete="off"> Чаще дышать.</label>
+                    <label><input type="checkbox" name="t16" value="1" autocomplete="off"> Использовать электричество вместо бензина.</label>
+                    <label><input type="checkbox" name="t16" value="1" autocomplete="off"> На предприятии пользоваться установками, которые улавливают вредные вещества.</label>
+                    <label><input type="checkbox" name="t16" value="0" autocomplete="off"> Чаще гулять в парках и лесах.</label>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask16()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="18" aria-label="Задание 17">
+                    <h3>Задание 17</h3>
+                    <p class="instruction-text">Допиши предложение:</p>
+                    <p style="font-size: 1.4rem;">Глобус – это <input type="text" class="inline-line" data-kw="модель земл" autocomplete="off" style="width:200px;"></p>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkRobustTextTask(18, 1, true)">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="19" aria-label="Задание 18">
+                    <h3>Задание 18</h3>
+                    <div style="text-align: center; margin: 10px 0;">
+                        <span style="font-size: 12em; line-height: 1; display: block;">🌐</span>
+                    </div>
+                    <p class="instruction-text">На поверхности глобуса мы видим перекрещивающиеся линии. Отметь их названия:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        <label><input type="checkbox" name="t18" value="1" autocomplete="off"> Меридианы</label>
+                        <label><input type="checkbox" name="t18" value="0" autocomplete="off"> Кривые линии</label>
+                        <label><input type="checkbox" name="t18" value="0" autocomplete="off"> Дуги</label>
+                        <label><input type="checkbox" name="t18" value="1" autocomplete="off"> Параллели</label>
+                        <label><input type="checkbox" name="t18" value="0" autocomplete="off"> Прямые линии</label>
+                        <label><input type="checkbox" name="t18" value="1" autocomplete="off"> Экватор</label>
+                        <label><input type="checkbox" name="t18" value="0" autocomplete="off"> Диаметр</label>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask18()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="20" aria-label="Задание 19">
+                    <h3>Задание 19</h3>
+                    <p class="instruction-text">Выбери верные ответы.</p>
+                    
+                    <p style="font-size: 1.4rem; margin-bottom: 10px;">1. Точно ориентироваться на местности позволяет специальный прибор:</p>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
+                        <label><input type="radio" name="t19_1" value="0" autocomplete="off"> дорожный указатель</label>
+                        <label><input type="radio" name="t19_1" value="0" autocomplete="off"> глобус</label>
+                        <label><input type="radio" name="t19_1" value="1" autocomplete="off"> компас</label>
+                        <label><input type="radio" name="t19_1" value="0" autocomplete="off"> спидометр</label>
+                    </div>
+                    
+                    <p style="font-size: 1.4rem; margin-bottom: 10px;">2. Синий конец стрелки показывает:</p>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
+                        <label><input type="radio" name="t19_2" value="0" autocomplete="off"> юг</label>
+                        <label><input type="radio" name="t19_2" value="0" autocomplete="off"> запад</label>
+                        <label><input type="radio" name="t19_2" value="0" autocomplete="off"> северо-восток</label>
+                        <label><input type="radio" name="t19_2" value="1" autocomplete="off"> север</label>
+                    </div>
+                    
+                    <p style="font-size: 1.4rem; margin-bottom: 10px;">3. Красный конец показывает:</p>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
+                        <label><input type="radio" name="t19_3" value="1" autocomplete="off"> юг</label>
+                        <label><input type="radio" name="t19_3" value="0" autocomplete="off"> запад</label>
+                        <label><input type="radio" name="t19_3" value="0" autocomplete="off"> юго-запад</label>
+                        <label><input type="radio" name="t19_3" value="0" autocomplete="off"> север</label>
+                    </div>
+
+                    <p style="font-size: 1.4rem; margin-bottom: 10px;">4. Слева от стрелки будет:</p>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
+                        <label><input type="radio" name="t19_4" value="0" autocomplete="off"> юг</label>
+                        <label><input type="radio" name="t19_4" value="1" autocomplete="off"> запад</label>
+                        <label><input type="radio" name="t19_4" value="0" autocomplete="off"> восток</label>
+                        <label><input type="radio" name="t19_4" value="0" autocomplete="off"> север</label>
+                    </div>
+
+                    <p style="font-size: 1.4rem; margin-bottom: 10px;">5. А справа:</p>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
+                        <label><input type="radio" name="t19_5" value="0" autocomplete="off"> юг</label>
+                        <label><input type="radio" name="t19_5" value="0" autocomplete="off"> запад</label>
+                        <label><input type="radio" name="t19_5" value="1" autocomplete="off"> восток</label>
+                        <label><input type="radio" name="t19_5" value="0" autocomplete="off"> север</label>
+                    </div>
+                    
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask19()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="21" aria-label="Задание 20">
+                    <h3>Задание 20</h3>
+                    <p class="instruction-text">Допиши предложения:</p>
+                    <p style="font-size: 1.4rem;">1. Бактерии – это <textarea class="answer-line" data-kw="мелк,мэлк,жив,жыв,организм,арганизм,клетк,кледк,састоящ,адн" autocomplete="off" rows="2"></textarea>.</p>
+                    <p style="font-size: 1.4rem;">2. Бактерии бывают <input type="text" class="inline-line" data-kw="вредн,полезн" autocomplete="off" style="width:200px;">.</p>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask20()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="22" aria-label="Задание 21">
+                    <h3>Задание 21</h3>
+                    <p class="instruction-text">Подпиши части строения гриба:</p>
+                    <div class="mushroom-container">
+                        <div style="display: flex; align-items: center; margin-right: 10px;">
+                            <input type="text" class="mushroom-input" data-kw="тело гриба,тело,тила,гриба,греба,тило гриба,тела гриба,тело греба,тило греба" style="width: 140px; text-align: center; margin-right: 5px;">
+                            <svg width="30" height="350" viewBox="0 0 30 350">
+                                <path d="M 20 10 Q 5 10 5 175 Q 5 340 20 340" fill="none" stroke="#000" stroke-width="3"/>
+                                <line x1="20" y1="10" x2="25" y2="10" stroke="#000" stroke-width="3"/>
+                                <line x1="20" y1="340" x2="25" y2="340" stroke="#000" stroke-width="3"/>
+                            </svg>
+                        </div>
+
+                        <svg class="mushroom-svg" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+                            <line x1="20" y1="280" x2="280" y2="280" stroke="#5D4037" stroke-width="4" stroke-dasharray="8,4"/>
+                            <path d="M 125 280 Q 115 300 120 310" fill="none" stroke="#8D6E63" stroke-width="3"/>
+                            <path d="M 140 280 Q 135 310 130 325" fill="none" stroke="#8D6E63" stroke-width="3"/>
+                            <path d="M 150 280 Q 150 305 155 320" fill="none" stroke="#8D6E63" stroke-width="3"/>
+                            <path d="M 160 280 Q 165 310 170 325" fill="none" stroke="#8D6E63" stroke-width="3"/>
+                            <path d="M 175 280 Q 185 300 180 315" fill="none" stroke="#8D6E63" stroke-width="3"/>
+                            <path d="M 120 310 Q 115 320 110 315" fill="none" stroke="#8D6E63" stroke-width="2"/>
+                            <path d="M 130 325 Q 125 335 120 330" fill="none" stroke="#8D6E63" stroke-width="2"/>
+                            <path d="M 170 325 Q 175 335 180 330" fill="none" stroke="#8D6E63" stroke-width="2"/>
+                            <path d="M 180 315 Q 185 325 190 320" fill="none" stroke="#8D6E63" stroke-width="2"/>
+                            <path d="M 120 280 L 125 150 L 175 150 L 180 280 Z" fill="#FFF8DC" stroke="#D2B48C" stroke-width="2"/>
+                            <path d="M 80 150 Q 150 40 220 150 Z" fill="#8B4513" stroke="#5D2F0A" stroke-width="2"/>
+                            <path d="M 85 150 Q 150 50 215 150" fill="none" stroke="#A0522D" stroke-width="2" opacity="0.5"/>
+                            <circle cx="110" cy="110" r="8" fill="#FFF8DC" opacity="0.8"/>
+                            <circle cx="150" cy="80" r="10" fill="#FFF8DC" opacity="0.8"/>
+                            <circle cx="180" cy="120" r="7" fill="#FFF8DC" opacity="0.8"/>
+                            <circle cx="130" cy="130" r="6" fill="#FFF8DC" opacity="0.8"/>
+                        </svg>
+
+                        <div style="display: flex; flex-direction: column; margin-left: 10px; height: 350px; justify-content: space-around;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
+                                <svg width="30" height="20"><line x1="0" y1="10" x2="25" y2="10" stroke="#000" stroke-width="2"/><polygon points="25,5 30,10 25,15" fill="#000"/></svg>
+                                <input type="text" class="mushroom-input" data-kw="шляпка,шляпк,шлапка,шлапк,шопка,шяпка,шляппка,шляпа" style="width: 120px;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <svg width="30" height="20"><line x1="0" y1="10" x2="25" y2="10" stroke="#000" stroke-width="2"/><polygon points="25,5 30,10 25,15" fill="#000"/></svg>
+                                <input type="text" class="mushroom-input" data-kw="ножка,ножк,ношка,ношк,ноошка,ножкка" style="width: 120px;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <svg width="30" height="20"><line x1="0" y1="10" x2="25" y2="10" stroke="#000" stroke-width="2"/><polygon points="25,5 30,10 25,15" fill="#000"/></svg>
+                                <input type="text" class="mushroom-input" data-kw="грибница,грибниц,гребница,гребниц,грипница,грипниц,мицелий,мицел,грибнеца,гребнеца" style="width: 120px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask21()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="23" aria-label="Задание 22">
+                    <h3>Задание 22</h3>
+                    <p class="instruction-text">Отметь пять групп растений:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        <label><input type="checkbox" name="t22_1" value="0" autocomplete="off"> Морские</label>
+                        <label><input type="checkbox" name="t22_1" value="1" autocomplete="off"> Хвойные</label>
+                        <label><input type="checkbox" name="t22_1" value="0" autocomplete="off"> Ползучие</label>
+                        <label><input type="checkbox" name="t22_1" value="1" autocomplete="off"> Папоротники</label>
+                        <label><input type="checkbox" name="t22_1" value="0" autocomplete="off"> Плодоносные</label>
+                        <label><input type="checkbox" name="t22_1" value="1" autocomplete="off"> Цветковые</label>
+                        <label><input type="checkbox" name="t22_1" value="0" autocomplete="off"> Мощные</label>
+                        <label><input type="checkbox" name="t22_1" value="1" autocomplete="off"> Мхи</label>
+                        <label><input type="checkbox" name="t22_1" value="0" autocomplete="off"> Наземные</label>
+                        <label><input type="checkbox" name="t22_1" value="1" autocomplete="off"> Водоросли</label>
+                    </div>
+                    
+                    <p class="instruction-text" style="margin-top: 20px;">Растения распространяются по Земле с помощью (выбери верные ответы):</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        <label><input type="checkbox" name="t22_2" value="0" autocomplete="off"> Транспортных средств</label>
+                        <label><input type="checkbox" name="t22_2" value="0" autocomplete="off"> Вьюги</label>
+                        <label><input type="checkbox" name="t22_2" value="1" autocomplete="off"> Ветра</label>
+                        <label><input type="checkbox" name="t22_2" value="1" autocomplete="off"> Человека</label>
+                        <label><input type="checkbox" name="t22_2" value="0" autocomplete="off"> Морских судов</label>
+                        <label><input type="checkbox" name="t22_2" value="1" autocomplete="off"> Животных</label>
+                        <label><input type="checkbox" name="t22_2" value="1" autocomplete="off"> Воды</label>
+                        <label><input type="checkbox" name="t22_2" value="1" autocomplete="off"> Самостоятельно</label>
+                        <label><input type="checkbox" name="t22_2" value="0" autocomplete="off"> Движения земной поверхности</label>
+                    </div>
+                    
+                    <div class="feedback" role="status"></div>
+                    <div class="buttons">
+                        <button class="check-btn" onclick="checkTask22()">Проверить задание</button>
+                        <button class="next-btn" onclick="nextTask()" disabled>Следующее задание</button>
+                    </div>
+                </section>
+
+                <section class="page" data-page="24" aria-label="Результаты">
+                    <h2 style="font-size: 2.2rem;">Результаты работы</h2>
+                    <div class="result-box">
+                        <div id="final-score" class="result-score"></div>
+                        <div id="final-message" class="result-message"></div>
+                    </div>
+                    <div class="buttons" style="margin-top: 30px; flex-direction: column; align-items: center;">
+                        <button id="finish-btn" class="finish-btn" onclick="finishTest()">Завершить работу</button>
+                        <p style="color: #006400; font-weight: bold; margin-top: 10px; font-size: 1.3rem;">Не забудь нажать на кнопку «Завершить работу»!</p>
+                    </div>
+                    <div id="flower-container" class="flower-container"></div>
+                </section>
+            </main>
+            <div class="panel-footer">👩🏻‍🎓🧑🏼‍🎓</div>
+        </div>
+    </div>
+
+    <script>
+        function normalizeText(text) { return text.toLowerCase().replace(/ё/g, 'е').replace(/[^а-яa-z0-9]/g, ''); }
+        function getConsonantSkeleton(text) { return text.toLowerCase().replace(/ё/g, 'е').replace(/[аеёиоуыэюяьъ\s]/g, ''); }
+        function levenshtein(a, b) {
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) matrix[i][j] = matrix[i - 1][j - 1];
+                    else matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+        function isRobustMatch(userVal, keywords) {
+            if (!userVal || userVal.trim() === '') return false;
+            const uNorm = normalizeText(userVal);
+            const uSkel = getConsonantSkeleton(userVal);
+            const userWords = userVal.toLowerCase().replace(/ё/g, 'е').split(/[\s,;.:\-()]+/).filter(w => w.length > 0);
+            for (let kw of keywords) {
+                const kNorm = normalizeText(kw);
+                const kSkel = getConsonantSkeleton(kw);
+                if (uNorm.includes(kNorm) || kNorm.includes(uNorm)) return true;
+                if (uSkel.length >= 3 && kSkel.length >= 3 && (uSkel.includes(kSkel) || kSkel.includes(uSkel))) return true;
+                const maxDist = kNorm.length <= 6 ? 1 : (kNorm.length <= 12 ? 2 : 3);
+                if (levenshtein(uNorm, kNorm) <= maxDist) return true;
+                const kwWords = kw.toLowerCase().replace(/ё/g, 'е').split(/[\s,;.:\-()]+/).filter(w => w.length > 0);
+                for (let uw of userWords) {
+                    for (let kwWord of kwWords) {
+                        const uwNorm = normalizeText(uw);
+                        const kwWordNorm = normalizeText(kwWord);
+                        if (uwNorm === kwWordNorm) return true;
+                        if (uwNorm.includes(kwWordNorm) || kwWordNorm.includes(uwNorm)) return true;
+                        const wordMaxDist = kwWordNorm.length <= 6 ? 1 : 2;
+                        if (levenshtein(uwNorm, kwWordNorm) <= wordMaxDist) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        const canvas = document.getElementById('sceneCanvas');
+        const ctx = canvas.getContext('2d');
+        const W = 1280, H = 720;
+        let time = 0, animId = null;
+        const clouds = [{ x: 100, y: 20, w: 140, speed: 0.3 }, { x: 550, y: 40, w: 180, speed: 0.2 }, { x: 950, y: 15, w: 130, speed: 0.25 }];
+
+        function drawCloud(x, y, w) {
+            const h = w * 0.25;
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.shadowColor = 'rgba(0,0,0,0.05)'; ctx.shadowBlur = 15;
+            ctx.beginPath(); ctx.ellipse(x, y, w*0.35, h*0.6, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x - w*0.25, y + h*0.2, w*0.2, h*0.5, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + w*0.25, y + h*0.15, w*0.2, h*0.5, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x - w*0.1, y - h*0.2, w*0.15, h*0.4, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + w*0.1, y - h*0.15, w*0.15, h*0.4, 0, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawTree(x, y, scale) {
+            ctx.fillStyle = '#6a4a2a'; ctx.fillRect(x - 8*scale, y, 16*scale, 100*scale);
+            ctx.shadowColor = '#2a5a2a'; ctx.shadowBlur = 20; ctx.fillStyle = '#3a8a3a';
+            ctx.beginPath(); ctx.arc(x, y - 30*scale, 70*scale, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#4a9a4a';
+            ctx.beginPath(); ctx.arc(x - 30*scale, y - 50*scale, 50*scale, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 30*scale, y - 50*scale, 50*scale, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#2a7a2a'; ctx.beginPath(); ctx.arc(x, y - 70*scale, 40*scale, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawBush(x, y, scale) {
+            ctx.fillStyle = '#3a7a3a'; ctx.shadowBlur = 10; ctx.shadowColor = '#1a3a1a';
+            ctx.beginPath(); ctx.arc(x, y, 30*scale, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x - 20*scale, y + 10*scale, 25*scale, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 20*scale, y + 10*scale, 25*scale, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawBackpack(x, y, color) {
+            ctx.save(); ctx.translate(x, y); ctx.scale(1.5, 1.5); ctx.fillStyle = color;
+            ctx.fillRect(-16, -10, 5, 22); ctx.fillRect(11, -10, 5, 22);
+            ctx.beginPath(); ctx.moveTo(-12, -16); ctx.lineTo(12, -16); ctx.quadraticCurveTo(14, -16, 14, -12); ctx.lineTo(14, 14);
+            ctx.quadraticCurveTo(14, 18, 10, 18); ctx.lineTo(-10, 18); ctx.quadraticCurveTo(-14, 18, -14, 14); ctx.lineTo(-14, -12);
+            ctx.quadraticCurveTo(-14, -16, -12, -16); ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.moveTo(-8, 2); ctx.lineTo(8, 2);
+            ctx.quadraticCurveTo(10, 2, 10, 5); ctx.lineTo(10, 14); ctx.quadraticCurveTo(10, 16, 8, 16); ctx.lineTo(-8, 16);
+            ctx.quadraticCurveTo(-10, 16, -10, 14); ctx.lineTo(-10, 5); ctx.quadraticCurveTo(-10, 2, -8, 2); ctx.fill();
+            ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, -16, 6, Math.PI, 0); ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawSchool(t) {
+            const sx = 380, sy = 110, sw = 520, sh = 340;
+            ctx.fillStyle = '#c49a6a'; ctx.shadowBlur = 0; ctx.fillRect(sx, sy, sw, sh);
+            ctx.strokeStyle = '#9a7a4a'; ctx.lineWidth = 2;
+            for (let i = 0; i < 12; i++) { const y = sy + 20 + i * 28; ctx.beginPath(); ctx.moveTo(sx+5, y); ctx.lineTo(sx+sw-5, y); ctx.stroke(); }
+            ctx.fillStyle = '#8a3a2a'; ctx.beginPath(); ctx.moveTo(sx-30, sy); ctx.lineTo(sx+sw/2, sy-110); ctx.lineTo(sx+sw+30, sy); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#5a2a1a'; ctx.fillRect(sx+sw/2-8, sy-110, 16, 12);
+
+            function drawWindow(wx, wy, ww, wh) {
+                ctx.fillStyle = '#87CEEB'; ctx.shadowBlur = 0; ctx.fillRect(wx, wy, ww, wh);
+                ctx.strokeStyle = '#5a3a2a'; ctx.lineWidth = 4; ctx.strokeRect(wx, wy, ww, wh);
+                ctx.beginPath(); ctx.moveTo(wx+ww/2, wy); ctx.lineTo(wx+ww/2, wy+wh); ctx.moveTo(wx, wy+wh/2); ctx.lineTo(wx+ww, wy+wh/2); ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(wx+4, wy+4, 10, 10);
+            }
+            drawWindow(sx+40, sy+40, 80, 90); drawWindow(sx+160, sy+40, 80, 90); drawWindow(sx+280, sy+40, 80, 90); drawWindow(sx+400, sy+40, 80, 90);
+
+            ctx.fillStyle = '#f9f3d9'; ctx.font = 'bold 28px "Segoe UI", "Comic Sans MS", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            ctx.fillText('Лесная школа', sx+sw/2, sy);
+
+            const classX = sx+20, classY = sy+40, classW = sw-40, classH = sh-80;
+            ctx.fillStyle = '#f0e8d0'; ctx.fillRect(classX, classY, classW, classH);
+            ctx.fillStyle = '#3E2723'; ctx.font = 'bold 36px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Контрольная работа', classX + classW/2, classY + classH/2);
+
+            const desks = [{ x: classX+40, y: classY+190+75 }, { x: classX+40, y: classY+300+75 }, { x: classX+280, y: classY+190+75 }, { x: classX+280, y: classY+300+75 }];
+            const backpackColors = ['#ff4d4d', '#4d79ff', '#4dff4d', '#ffcc00'];
+
+            for (let i = 0; i < desks.length; i++) {
+                const dx = desks[i].x, dy = desks[i].y;
+                ctx.fillStyle = '#b88a4a'; ctx.fillRect(dx, dy, 120, 60);
+                ctx.fillStyle = '#9a7a3a'; ctx.fillRect(dx, dy-6, 120, 10);
+                ctx.fillStyle = '#6a4a2a'; ctx.fillRect(dx+8, dy+60, 12, 30); ctx.fillRect(dx+100, dy+60, 12, 30);
+                if (i%2===0) { ctx.fillStyle = '#c04040'; ctx.fillRect(dx+20, dy+10, 30, 20); ctx.fillStyle = '#4080c0'; ctx.fillRect(dx+55, dy+10, 30, 20); } 
+                else { ctx.fillStyle = '#40a060'; ctx.fillRect(dx+20, dy+10, 40, 18); }
+                let portX = (i<2) ? dx-30 : dx+130+9;
+                drawBackpack(portX, dy+50, backpackColors[i % backpackColors.length]);
+            }
+
+            const animalPositions = [{ x: desks[0].x+60, y: desks[0].y+40, type: 'hare', phase: 0 }, { x: desks[1].x+60, y: desks[1].y+40, type: 'bear', phase: 1.2 }, { x: desks[2].x+60, y: desks[2].y+40-26, type: 'fox', phase: 2.5 }];
+            const stumpOffsets = [30, 55, 50];
+
+            for (let i = 0; i < animalPositions.length; i++) {
+                const p = animalPositions[i];
+                ctx.font = '4em sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('🪵', p.x, p.y + stumpOffsets[i]);
+            }
+            ctx.font = '4em sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('🪵', desks[3].x+60, desks[3].y+40+30);
+
+            function drawHare(x, y, phase) {
+                const color = '#d0d0d0'; ctx.fillStyle = color;
+                ctx.beginPath(); ctx.ellipse(x, y, 30, 35, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(x, y-30, 22, 25, 0, 0, Math.PI*2); ctx.fill();
+                const earAngle = 0.1*Math.sin(t*1.5+phase); ctx.fillStyle = color;
+                ctx.save(); ctx.translate(x-12, y-48); ctx.rotate(-0.3+earAngle); ctx.fillRect(-4, -30, 8, 30); ctx.restore();
+                ctx.save(); ctx.translate(x+12, y-48); ctx.rotate(0.3-earAngle); ctx.fillRect(-4, -30, 8, 30); ctx.restore();
+                ctx.fillStyle = '#1a1a2a'; ctx.beginPath(); ctx.arc(x-8, y-34, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x+8, y-34, 4, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#f0a0a0'; ctx.beginPath(); ctx.arc(x, y-28, 4, 0, Math.PI*2); ctx.fill();
+                const pawY = 6*Math.sin(t*0.8+phase); ctx.fillStyle = color;
+                ctx.beginPath(); ctx.ellipse(x+20, y+10+pawY, 8, 12, 0, 0, Math.PI*2); ctx.fill();
+            }
+
+            function drawBear(x, y, phase) {
+                ctx.fillStyle = '#7a5a3a'; ctx.beginPath(); ctx.ellipse(x, y, 40, 45, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(x, y-35, 28, 30, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#6a4a2a'; ctx.beginPath(); ctx.arc(x-22, y-52, 12, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x+22, y-52, 12, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#b08a6a'; ctx.beginPath(); ctx.ellipse(x, y-28, 14, 10, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#2a1a1a'; ctx.beginPath(); ctx.arc(x, y-30, 5, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#1a1a2a'; ctx.beginPath(); ctx.arc(x-10, y-40, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x+10, y-40, 4, 0, Math.PI*2); ctx.fill();
+                const pawAngle = 0.3*Math.sin(t*0.6+phase);
+                ctx.save(); ctx.translate(x+30, y-10); ctx.rotate(pawAngle); ctx.fillStyle = '#7a5a3a'; ctx.fillRect(0,0,20,14); ctx.restore();
+            }
+
+            function drawFox(x, y, phase) {
+                ctx.fillStyle = '#d48a3a'; ctx.beginPath(); ctx.ellipse(x, y, 35, 40, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(x, y-30, 25, 28, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(x-18, y-48); ctx.lineTo(x-8, y-70); ctx.lineTo(x+2, y-48); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(x+18, y-48); ctx.lineTo(x+8, y-70); ctx.lineTo(x-2, y-48); ctx.fill();
+                ctx.fillStyle = '#f0e8d0'; ctx.beginPath(); ctx.ellipse(x, y-20, 12, 18, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(x, y-28, 10, 8, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#1a1a2a'; ctx.beginPath(); ctx.arc(x, y-30, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x-8, y-36, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x+8, y-36, 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#d48a3a'; ctx.beginPath(); ctx.ellipse(x-40, y+20, 20, 30, -0.5, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#f0e8d0'; ctx.beginPath(); ctx.ellipse(x-50, y+30, 10, 18, -0.5, 0, Math.PI*2); ctx.fill();
+                const pawY = 6*Math.sin(t*0.9+phase); ctx.fillStyle = '#d48a3a';
+                ctx.beginPath(); ctx.ellipse(x+22, y+10+pawY, 8, 14, 0, 0, Math.PI*2); ctx.fill();
+            }
+
+            for (let i=0; i<animalPositions.length; i++) {
+                const p = animalPositions[i];
+                if (p.type === 'hare') drawHare(p.x, p.y, p.phase);
+                else if (p.type === 'bear') drawBear(p.x, p.y, p.phase);
+                else if (p.type === 'fox') drawFox(p.x, p.y, p.phase);
+            }
+        }
+
+        function drawScene(t) {
+            const skyGrad = ctx.createLinearGradient(0,0,0,H*0.6);
+            skyGrad.addColorStop(0, '#87CEEB'); skyGrad.addColorStop(0.7, '#b0d4f0'); skyGrad.addColorStop(1, '#d4e8b0');
+            ctx.fillStyle = skyGrad; ctx.fillRect(0,0,W,H);
+            for (let c of clouds) { c.x += c.speed*0.3; if (c.x > W+c.w) c.x = -c.w; drawCloud(c.x, c.y, c.w); }
+            ctx.fillStyle = '#2a4a2a'; ctx.beginPath(); ctx.moveTo(0, H*0.55);
+            for (let x=0; x<=W; x+=10) { const y = H*0.55 - 20 - 15*Math.sin(x*0.008+0.5) - 10*Math.sin(x*0.015+2.3); ctx.lineTo(x, y); }
+            ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+
+            const grassY = 450;
+            const grassGrad = ctx.createLinearGradient(0, grassY, 0, H);
+            grassGrad.addColorStop(0, '#7cb84a'); grassGrad.addColorStop(0.3, '#5a9e3a'); grassGrad.addColorStop(1, '#3a7a2a');
+            ctx.fillStyle = grassGrad; ctx.fillRect(0, grassY, W, H-grassY);
+
+            for (let i=0; i<40; i++) {
+                const fx = (i*97+13)%W; const fy = grassY + 30 + (i*53+7)%(H-grassY-60);
+                const col = i%3===0 ? '#f9a8a8' : (i%3===1 ? '#f9e076' : '#d0a8f0');
+                ctx.fillStyle = col; ctx.beginPath(); ctx.arc(fx, fy, 4+(i%3), 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#5a7a2a'; ctx.fillRect(fx-1, fy+4, 2, 8);
+            }
+
+            drawTree(80, grassY-20, 1.2); drawTree(40, grassY+20, 0.9); drawTree(1200, grassY-10, 1.4); drawTree(1240, grassY+30, 1.0);
+            drawBush(260, grassY+70, 1.0); drawBush(1010, grassY+30, 1.2); drawSchool(t);
+
+            const rightBaseX = 1000, rightBaseY = 300;
+            for (let i = 0; i < 6; i++) {
+                const offsetX = (i - 2.5) * 20; const offsetY = Math.sin(i * 1.5) * 15;
+                const bx = rightBaseX + offsetX + 20 * Math.sin(t * 0.5 + i * 1.2);
+                const by = rightBaseY + offsetY + 20 * Math.sin(t * 0.7 + i * 0.8);
+                ctx.fillStyle = i % 2 === 0 ? '#f0a0c0' : '#a0d0f0';
+                ctx.beginPath(); ctx.ellipse(bx - 6, by, 8, 5, -0.2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(bx + 6, by, 8, 5, 0.2, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#2a1a1a'; ctx.fillRect(bx - 1, by - 2, 2, 4);
+            }
+
+            const baseX = 300, baseY = 300;
+            for (let i=0; i<6; i++) {
+                const offsetX = (i-2.5)*20; const offsetY = Math.sin(i*1.5)*15;
+                const bx = baseX + offsetX + 20*Math.sin(t*0.5 + i*1.2);
+                const by = baseY + offsetY + 20*Math.sin(t*0.7 + i*0.8);
+                ctx.fillStyle = i%2===0 ? '#f0a0c0' : '#a0d0f0';
+                ctx.beginPath(); ctx.ellipse(bx-6, by, 8, 5, -0.2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(bx+6, by, 8, 5, 0.2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#2a1a1a'; ctx.fillRect(bx-1, by-2, 2, 4);
+            }
+
+            ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+            ctx.font = '3em sans-serif'; ctx.fillText('🦜', 280, grassY+50);
+            ctx.font = '5em sans-serif'; ctx.fillText('🦚', 590, grassY+85);
+            ctx.font = '3em sans-serif'; ctx.fillText('🦆', 582, grassY+121);
+
+            ctx.save(); ctx.translate(70, 70);
+            const sunGlow = ctx.createRadialGradient(0, 0, 30, 0, 0, 150);
+            sunGlow.addColorStop(0, 'rgba(255, 255, 0, 1)'); sunGlow.addColorStop(0.3, 'rgba(255, 235, 59, 0.8)');
+            sunGlow.addColorStop(0.6, 'rgba(255, 193, 7, 0.4)'); sunGlow.addColorStop(1, 'rgba(255, 152, 0, 0)');
+            ctx.fillStyle = sunGlow; ctx.beginPath(); ctx.arc(0, 0, 150, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowColor = '#FFEB3B'; ctx.shadowBlur = 100; ctx.fillStyle = '#FFEB3B';
+            ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 6;
+            for (let i = 0; i < 20; i++) {
+                const angle = (i * Math.PI) / 10 + t * 0.01;
+                ctx.beginPath(); ctx.moveTo(65 * Math.cos(angle), 65 * Math.sin(angle));
+                ctx.lineTo(120 * Math.cos(angle), 120 * Math.sin(angle)); ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function animate(timeStamp) { time = timeStamp/1000; ctx.clearRect(0,0,W,H); drawScene(time); animId = requestAnimationFrame(animate); }
+        animate(0);
+
+        fetch('https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_land.geojson')
+            .then(response => response.json())
+            .then(data => {
+                const mapCanvas = document.getElementById('mapCanvas');
+                const mCtx = mapCanvas.getContext('2d');
+                mapCanvas.width = 1200; mapCanvas.height = 600;
+                mCtx.fillStyle = '#a8d4f0'; mCtx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
+                data.features.forEach(feature => {
+                    const coords = feature.geometry.coordinates;
+                    let isAntarctica = false; const allCoords = [];
+                    function collectCoords(c) { if (typeof c[0] === 'number') { allCoords.push(c); } else { c.forEach(collectCoords); } }
+                    collectCoords(coords);
+                    if (allCoords.length > 0) {
+                        const avgLat = allCoords.reduce((sum, c) => sum + c[1], 0) / allCoords.length;
+                        if (avgLat < -60) isAntarctica = true;
+                    }
+                    mCtx.fillStyle = isAntarctica ? '#ffffff' : '#8fbf6f';
+                    mCtx.strokeStyle = isAntarctica ? '#b0b0b0' : '#6b8c42'; mCtx.lineWidth = 1;
+                    if (feature.geometry.type === 'Polygon') { drawPolygonMap(mCtx, coords[0]); } 
+                    else if (feature.geometry.type === 'MultiPolygon') { coords.forEach(polygon => { drawPolygonMap(mCtx, polygon[0]); }); }
+                });
+            }).catch(() => {});
+
+        function drawPolygonMap(ctx, coords) {
+            ctx.beginPath();
+            coords.forEach((coord, i) => {
+                const x = (coord[0] + 180) * (1200 / 360);
+                const y = (90 - coord[1]) * (600 / 180);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+
+        function playWinSound() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctxAudio = new AudioContext(); const now = ctxAudio.currentTime;
+                const notes = [261.63, 329.63, 392.00, 523.25];
+                notes.forEach((freq, i) => {
+                    const osc = ctxAudio.createOscillator(); const gain = ctxAudio.createGain();
+                    osc.type = 'triangle'; osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, now + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+                    osc.connect(gain); gain.connect(ctxAudio.destination);
+                    osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.3);
+                });
+                [261.63, 329.63, 392.00, 523.25].forEach(freq => {
+                    const osc = ctxAudio.createOscillator(); const gain = ctxAudio.createGain();
+                    osc.type = 'sine'; osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, now + 0.4);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+                    osc.connect(gain); gain.connect(ctxAudio.destination);
+                    osc.start(now + 0.4); osc.stop(now + 1.2);
+                });
+            } catch (e) {}
+        }
+
+        let currentPage = 1; let studentName = ""; let scores = {}; let isTaskChecked = {}; let isFinished = false;
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBfu_2RHJXu6Zn9w4_BblVB8ww3oDYbLn1dpnI_tgbLmovoUs7MVNe2Vxb5z0PRh05dQ/exec';
+
+        function updateProgress() {
+            let correctCount = Object.values(scores).reduce((a, b) => a + b, 0);
+            document.getElementById('progress-counter').textContent = `Из 22 заданий верно выполнено ${correctCount}`;
+        }
+
+        function startTest() {
+            const nameInput = document.getElementById('student-name').value.trim();
+            const errorMsg = document.getElementById('name-error');
+            const words = nameInput.split(/\s+/).filter(w => w.length > 0);
+            if (words.length < 2) { 
+                errorMsg.textContent = "Напиши полностью фамилию имя!"; 
+                errorMsg.style.display = "block"; 
+                errorMsg.style.color = "#ff0000"; 
+                return; 
+            }
+            studentName = nameInput; 
+            errorMsg.style.display = "none"; 
+            goToPage(2);
+        }
+
+        function goToPage(pageNum) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelector(`.page[data-page="${pageNum}"]`).classList.add('active');
+            currentPage = pageNum;
+            if (pageNum === 24) { showResults(); startFlowerAnimation(); } else { stopFlowerAnimation(); }
+        }
+
+        function nextTask() {
+            if (!isTaskChecked[currentPage]) { 
+                alert("Сначала проверьте задание, нажав кнопку «Проверить задание»!"); 
+                return; 
+            }
+            if (currentPage < 23) { goToPage(currentPage + 1); } else { goToPage(24); }
+        }
+
+        function showFeedback(pageNum, isCorrect, msg) {
+            const section = document.querySelector(`.page[data-page="${pageNum}"]`);
+            const feedback = section.querySelector('.feedback');
+            feedback.style.display = 'block';
+            if (isCorrect) { feedback.className = 'feedback correct'; feedback.textContent = msg || 'Верно! Молодец!'; playWinSound(); } 
+            else { feedback.className = 'feedback incorrect'; feedback.textContent = msg || 'Неверно. Решай дальше и будь внимательнее!'; }
+            section.classList.add('checked'); isTaskChecked[pageNum] = true; scores[pageNum] = isCorrect ? 1 : 0;
+            const nextBtn = section.querySelector('.next-btn'); if (nextBtn) nextBtn.disabled = false;
+            updateProgress();
+        }
+
+        function checkTask1() {
+            if (isTaskChecked[2]) return;
+            const checkedCbs = document.querySelectorAll('input[name="t1"]:checked');
+            if (checkedCbs.length === 0) { alert("Выбери варианты ответов!"); return; }
+            const values = Array.from(checkedCbs).map(cb => cb.value);
+            showFeedback(2, values.length === 2 && values.every(v => v === '1'));
+        }
+
+        function checkTask(pageNum, type, name, correctVal) {
+            if (isTaskChecked[pageNum]) return;
+            const selected = document.querySelector(`input[name="${name}"]:checked`);
+            if (!selected) { alert("Выбери вариант ответа!"); return; }
+            showFeedback(pageNum, selected.value === correctVal);
+        }
+
+        function checkTask2() {
+            if (isTaskChecked[3]) return;
+            const inputs = document.querySelectorAll('#mapWrap .field input, #mapWrap .field textarea');
+            let allFilled = true;
+            inputs.forEach(input => {
+                if (input.value.trim() === '') allFilled = false;
+            });
+            if (!allFilled) { alert("Заполни все поля на карте!"); return; }
+            let correct = 0;
+            inputs.forEach(input => {
+                const userAnswer = input.value.trim().toLowerCase().replace(/ё/g, 'е');
+                const correctAnswer = input.dataset.answer.trim().toLowerCase().replace(/ё/g, 'е');
+                if (userAnswer === correctAnswer) { input.style.borderBottomColor = '#2e7d32'; correct++; } 
+                else if (userAnswer !== '') { input.style.borderBottomColor = '#c62828'; } 
+                else { input.style.borderBottomColor = '#1a5e7a'; }
+            });
+            showFeedback(3, correct === 11);
+        }
+
+        function checkTask3() {
+            if (isTaskChecked[4]) return;
+            const inputs = document.querySelectorAll('.page[data-page="4"] input[type="text"]');
+            let allFilled = true;
+            inputs.forEach(input => {
+                if (input.value.trim() === '') allFilled = false;
+            });
+            if (!allFilled) { alert("Заполни все поля!"); return; }
+            let allCorrect = true;
+            inputs.forEach(input => {
+                if (input.value.trim() !== input.dataset.ans) { allCorrect = false; input.style.borderBottomColor = '#c62828'; } 
+                else { input.style.borderBottomColor = '#2e7d32'; }
+            });
+            showFeedback(4, allCorrect);
+        }
+
+        function checkTask4() {
+            if (isTaskChecked[5]) return;
+            const naturalZone = document.getElementById('natural');
+            const artificialZone = document.getElementById('artificial');
+            const naturalItems = naturalZone.querySelectorAll('span');
+            const artificialItems = artificialZone.querySelectorAll('span');
+            if (naturalItems.length + artificialItems.length < 14) { 
+                alert("Распредели все тела по группам!"); 
+                return; 
+            }
+            let allCorrect = true;
+            naturalItems.forEach(item => { if (item.dataset.type !== 'natural') allCorrect = false; });
+            artificialItems.forEach(item => { if (item.dataset.type !== 'artificial') allCorrect = false; });
+            showFeedback(5, allCorrect);
+        }
+
+        function checkTimeAnswer(userText, requiredNumber, unitPatterns) {
+            if (!userText || userText.trim() === '') return false;
+            const text = userText.toLowerCase().replace(/ё/g, 'е').replace(/\./g, '').trim();
+            const hasNumber = text.includes(String(requiredNumber));
+            if (!hasNumber) return false;
+            const hasUnit = unitPatterns.some(unit => text.includes(unit));
+            return hasUnit;
+        }
+
+        function checkTask10() {
+            if (isTaskChecked[11]) return;
+            const inputs = document.querySelectorAll('.page[data-page="11"] input[type="text"]');
+            const q1 = document.getElementById('q10-1');
+            const q2 = document.getElementById('q10-2');
+            let allFilled = true;
+            inputs.forEach(input => { if (input.value.trim() === '') allFilled = false; });
+            if (!allFilled) { alert("Заполни все поля!"); return; }
+            
+            const q1Correct = checkTimeAnswer(q1.value, 24, ['часа', 'часов', 'час', 'ч']);
+            q1.style.borderBottomColor = q1Correct ? '#2e7d32' : '#c62828';
+            const q2Correct = checkTimeAnswer(q2.value, 365, ['дней', 'дня', 'дн', 'д']);
+            q2.style.borderBottomColor = q2Correct ? '#2e7d32' : '#c62828';
+            
+            let allCorrect = q1Correct && q2Correct;
+            for (let i = 2; i < inputs.length; i++) {
+                const input = inputs[i];
+                if (!isRobustMatch(input.value, input.dataset.kw.split(','))) { 
+                    allCorrect = false; input.style.borderBottomColor = '#c62828'; 
+                } else { input.style.borderBottomColor = '#2e7d32'; }
+            }
+            showFeedback(11, allCorrect);
+        }
+
+        function checkTask11() {
+            if (isTaskChecked[12]) return;
+            const cbs = document.querySelectorAll('input[name="t11"]:checked');
+            if (cbs.length === 0) { alert("Выбери варианты ответов!"); return; }
+            const values = Array.from(cbs).map(cb => cb.value);
+            showFeedback(12, values.length === 1 && values.includes('1'));
+        }
+
+        function checkTask12() {
+            if (isTaskChecked[13]) return;
+            const cbs = document.querySelectorAll('input[name="t12"]:checked');
+            if (cbs.length === 0) { alert("Выбери варианты ответов!"); return; }
+            const values = Array.from(cbs).map(cb => cb.value);
+            showFeedback(13, values.length === 3 && values.every(v => v === '1'));
+        }
+
+        function checkTask13() {
+            if (isTaskChecked[14]) return;
+            const cbs = document.querySelectorAll('input[name="t13"]:checked');
+            if (cbs.length === 0) { alert("Выбери варианты ответов!"); return; }
+            const values = Array.from(cbs).map(cb => cb.value);
+            showFeedback(14, values.length === 7 && values.every(v => v === '1'));
+        }
+
+        function checkTask14() {
+            if (isTaskChecked[15]) return;
+            const cbs = document.querySelectorAll('input[name="t14"]:checked');
+            if (cbs.length === 0) { alert("Выбери варианты ответов!"); return; }
+            const values = Array.from(cbs).map(cb => cb.value);
+            showFeedback(15, values.length === 3 && values.every(v => v === '1'));
+        }
+
+        function checkTask15() {
+            if (isTaskChecked[16]) return;
+            const cbs = document.querySelectorAll('input[name="t15"]:checked');
+            if (cbs.length === 0) { alert("Выбери варианты ответов!"); return; }
+            const values = Array.from(cbs).map(cb => cb.value);
+            showFeedback(16, values.length === 5 && values.every(v => v === '1'));
+        }
+
+        function checkTask16() {
+            if (isTaskChecked[17]) return;
+            const cbs = document.querySelectorAll('input[name="t16"]:checked');
+            if (cbs.length === 0) { alert("Выбери варианты ответов!"); return; }
+            const values = Array.from(cbs).map(cb => cb.value);
+            showFeedback(17, values.length === 3 && values.every(v => v === '1'));
+        }
+
+        function checkTask18() {
+            if (isTaskChecked[19]) return;
+            const cbs = document.querySelectorAll('input[name="t18"]:checked');
+            if (cbs.length === 0) { alert("Выбери варианты ответов!"); return; }
+            const values = Array.from(cbs).map(cb => cb.value);
+            showFeedback(19, values.length === 3 && values.every(v => v === '1'));
+        }
+
+        function checkTask19() {
+            if (isTaskChecked[20]) return;
+            const q1 = document.querySelector('input[name="t19_1"]:checked');
+            const q2 = document.querySelector('input[name="t19_2"]:checked');
+            const q3 = document.querySelector('input[name="t19_3"]:checked');
+            const q4 = document.querySelector('input[name="t19_4"]:checked');
+            const q5 = document.querySelector('input[name="t19_5"]:checked');
+            if (!q1 || !q2 || !q3 || !q4 || !q5) { alert("Выбери все варианты ответов!"); return; }
+            const allCorrect = (q1.value === '1') && (q2.value === '1') && (q3.value === '1') && (q4.value === '1') && (q5.value === '1');
+            showFeedback(20, allCorrect);
+        }
+
+        function checkTask20() {
+            if (isTaskChecked[21]) return;
+            const section = document.querySelector('.page[data-page="21"]');
+            const textarea = section.querySelector('textarea');
+            const input = section.querySelector('input[type="text"]');
+            if (textarea.value.trim() === '' || input.value.trim() === '') { alert("Заполни все поля!"); return; }
+            const m1 = isRobustMatch(textarea.value, ["мелк", "мэлк", "жив", "жыв", "организм", "арганизм", "клетк", "кледк", "састоящ", "адн"]) ? 1 : 0;
+            const m2 = isRobustMatch(input.value, ["вредн", "полезн"]) ? 1 : 0;
+            textarea.style.borderBottomColor = m1 >= 1 ? '#2e7d32' : (textarea.value.length > 0 ? '#c62828' : '#000');
+            input.style.borderBottomColor = m2 >= 1 ? '#2e7d32' : (input.value.length > 0 ? '#c62828' : '#000');
+            showFeedback(21, m1 >= 1 && m2 >= 1);
+        }
+
+        function checkTask21() {
+            if (isTaskChecked[22]) return;
+            const inputs = document.querySelectorAll('.page[data-page="22"] .mushroom-input');
+            let allFilled = true;
+            inputs.forEach(input => { if (input.value.trim() === '') allFilled = false; });
+            if (!allFilled) { alert("Подпиши все части гриба!"); return; }
+            let correctCount = 0;
+            inputs.forEach(input => {
+                if (isRobustMatch(input.value, input.dataset.kw.split(','))) { correctCount++; input.style.borderBottomColor = '#2e7d32'; } 
+                else if (input.value.trim().length > 0) { input.style.borderBottomColor = '#c62828'; }
+            });
+            showFeedback(22, correctCount === inputs.length);
+        }
+
+        function checkRobustTextTask(pageNum, minMatches, isSingleInput = false) {
+            if (isTaskChecked[pageNum]) return;
+            const section = document.querySelector(`.page[data-page="${pageNum}"]`);
+            const inputs = isSingleInput ? [section.querySelector('input[type="text"]')] : section.querySelectorAll('textarea, input[type="text"]');
+            let totalMatches = 0; let allFilled = true;
+            inputs.forEach(input => {
+                if (!input) return;
+                const userText = input.value;
+                if (userText.trim().length === 0) allFilled = false;
+                const keywords = input.dataset.kw.split(',');
+                let inputMatches = 0;
+                keywords.forEach(kw => { if (isRobustMatch(userText, [kw])) inputMatches++; });
+                totalMatches += inputMatches;
+                if (inputMatches > 0) input.style.borderBottomColor = '#2e7d32';
+                else if (userText.trim().length > 0) input.style.borderBottomColor = '#c62828';
+            });
+            if (!allFilled) { alert("Заполни все поля!"); return; }
+            showFeedback(pageNum, totalMatches >= minMatches);
+        }
+
+        function checkTask22() {
+            if (isTaskChecked[23]) return;
+            const cbs1 = document.querySelectorAll('input[name="t22_1"]:checked');
+            if (cbs1.length === 0) { alert("Выбери группы растений!"); return; }
+            const vals1 = Array.from(cbs1).map(cb => cb.value);
+            const part1Correct = vals1.length === 5 && vals1.every(v => v === '1');
+            
+            const cbs2 = document.querySelectorAll('input[name="t22_2"]:checked');
+            if (cbs2.length === 0) { alert("Выбери способы распространения!"); return; }
+            const vals2 = Array.from(cbs2).map(cb => cb.value);
+            const part2Correct = vals2.length === 5 && vals2.every(v => v === '1');
+            
+            showFeedback(23, part1Correct && part2Correct);
+        }
+
+        function allowDrop(ev) { ev.preventDefault(); }
+        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+        function drop(ev) {
+            ev.preventDefault();
+            const draggedElement = document.getElementById(ev.dataTransfer.getData("text"));
+            const dropZone = ev.target.closest('.drop-zone');
+            if (dropZone && draggedElement) { dropZone.appendChild(draggedElement); }
+        }
+
+        let flowerInterval;
+        function startFlowerAnimation() {
+            const container = document.getElementById('flower-container'); container.innerHTML = '';
+            const flowers = ['🌸', '🌼', '🌺', '🌻', '🌷', '🌹'];
+            flowerInterval = setInterval(() => {
+                const flower = document.createElement('div'); flower.className = 'flower';
+                flower.textContent = flowers[Math.floor(Math.random() * flowers.length)];
+                flower.style.left = Math.random() * 90 + 5 + '%';
+                flower.style.animationDuration = (Math.random() * 3 + 3) + 's';
+                container.appendChild(flower);
+                setTimeout(() => { if (flower.parentNode) flower.parentNode.removeChild(flower); }, 6000);
+            }, 300);
+        }
+
+        function stopFlowerAnimation() {
+            if (flowerInterval) { clearInterval(flowerInterval); flowerInterval = null; }
+            const container = document.getElementById('flower-container');
+            if (container) container.innerHTML = '';
+        }
+
+        function getGradeAndMessage(correctCount) {
+            if (correctCount === 22) return { grade: "5", message: "Высокий уровень знаний. Твои отличные знания помогут сберечь планету Земля!" };
+            if (correctCount >= 16) return { grade: "4", message: "Уровень знаний хороший. С твоими знаниями планета Земля станет ещё прекраснее и безопаснее!" };
+            if (correctCount >= 11) return { grade: "3", message: "Уровень знаний средний. Ты же можешь лучше! Планета Земля ждёт, когда ты начнёшь её изучать всерьёз!" };
+            return { grade: "2", message: 'Уровень знаний низкий. Планета Земля шепчет: "Эй, друг, пора узнать меня получше!"' };
+        }
+
+        function showResults() {
+            let correctCount = Object.values(scores).reduce((a, b) => a + b, 0);
+            const result = getGradeAndMessage(correctCount);
+            document.getElementById('final-score').innerHTML = `Верно: ${correctCount} из 22<br>ОЦЕНКА: ${result.grade}`;
+            document.getElementById('final-message').textContent = result.message;
+        }
+
+        function finishTest() {
+            if (isFinished) return;
+            isFinished = true;
+            document.getElementById('finish-btn').disabled = true;
+            document.getElementById('finish-btn').textContent = "Работа завершена";
+            let correctCount = Object.values(scores).reduce((a, b) => a + b, 0);
+            fetch(SCRIPT_URL, {
+                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: new Date().toISOString(), name: studentName, correct: correctCount, total: 22,
+                    errors: 22 - correctCount, grade: getGradeAndMessage(correctCount).grade
+                })
+            }).catch(err => console.error("Submission error:", err));
+        }
+    </script>
+</body>
+</html>
